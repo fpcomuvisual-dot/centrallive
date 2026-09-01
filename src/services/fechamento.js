@@ -62,10 +62,17 @@ export async function fecharVenda({ cliente, itens, total }, opts = {}) {
   );
 
   // Mensagens com Foto + Descrição para CADA peça comprada
+  let totalOriginalCalculado = 0;
   for (const item of (itens || [])) {
     const desc = item.descricao || 'Produto';
-    const preco = formatarPrecoBR(item.preco_venda ?? item.preco_cheio ?? item.preco ?? 0);
-    const caption = `${desc} por R$ ${preco}`;
+    const precoPago = item.preco_venda ?? item.preco ?? 0;
+    const precoOriginal = item.preco_cheio ?? precoPago;
+    totalOriginalCalculado += Number(precoOriginal);
+
+    const temDesconto = precoOriginal && Number(precoOriginal) > Number(precoPago);
+    const caption = temDesconto
+      ? `${desc} — (era R$ ${formatarPrecoBR(precoOriginal)}) por R$ ${formatarPrecoBR(precoPago)} 🔥`
+      : `${desc} por R$ ${formatarPrecoBR(precoPago)}`;
       
     await executar(async () => {
       const imagem = item.storage_url || (item.codigo_fabrica ? await artesService.buscarImagemPorSku(item.codigo_fabrica) : null);
@@ -75,11 +82,14 @@ export async function fecharVenda({ cliente, itens, total }, opts = {}) {
     });
   }
 
+  const economiaTotal = totalOriginalCalculado - Number(total || 0);
+  const textoEconomia = economiaTotal > 0.05 ? ` (Você economizou R$ ${formatarPrecoBR(economiaTotal)}! 🎉)` : '';
+
   // Última mensagem: Total somado + Pix ou cartão?
   await executar(() =>
     evolution.enviarTexto(
       whatsapp,
-      `Total: R$ ${formatarPrecoBR(total)}\n\nPix ou cartão?`
+      `Total: R$ ${formatarPrecoBR(total)}${textoEconomia}\n\nPix ou cartão?`
     )
   );
 

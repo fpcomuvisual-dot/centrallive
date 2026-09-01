@@ -24,15 +24,27 @@ function montarUrlWaMe(venda) {
   texto += `amiga, vou fechar a sua compra da live de hoje tá?\n\n`;
   texto += `ficou assim:\n\n`;
 
+  let totalOriginalCalculado = 0;
   if (venda.itens && venda.itens.length > 0) {
     venda.itens.forEach((item) => {
       const desc = item.descricao || 'Produto';
-      const preco = formatarBR(item.preco_venda ?? item.preco_cheio ?? item.preco ?? 0);
-      texto += `• ${desc} por R$ ${preco}\n`;
+      const precoPago = item.preco_venda ?? item.preco ?? 0;
+      const precoOriginal = item.preco_cheio ?? precoPago;
+      totalOriginalCalculado += Number(precoOriginal);
+
+      const temDesconto = precoOriginal && Number(precoOriginal) > Number(precoPago);
+      if (temDesconto) {
+        texto += `• ${desc} — (era R$ ${formatarBR(precoOriginal)}) por R$ ${formatarBR(precoPago)} 🔥\n`;
+      } else {
+        texto += `• ${desc} por R$ ${formatarBR(precoPago)}\n`;
+      }
     });
   }
 
-  texto += `\nTotal: R$ ${formatarBR(venda.total)}\n\n`;
+  const economiaTotal = totalOriginalCalculado - Number(venda.total || 0);
+  const textoEconomia = economiaTotal > 0.05 ? ` (Você economizou R$ ${formatarBR(economiaTotal)}! 🎉)` : '';
+
+  texto += `\nTotal: R$ ${formatarBR(venda.total)}${textoEconomia}\n\n`;
   texto += `Pix ou cartão?`;
 
   return `https://web.whatsapp.com/send?phone=${whatsapp}&text=${encodeURIComponent(texto)}`;
@@ -77,15 +89,27 @@ export default function KanbanPage() {
     texto += `amiga, vou fechar a sua compra da live de hoje tá?\n\n`;
     texto += `ficou assim:\n\n`;
 
+    let totalOriginalCalculado = 0;
     if (venda.itens && venda.itens.length > 0) {
       venda.itens.forEach((item) => {
         const desc = item.descricao || 'Produto';
-        const preco = formatarBR(item.preco_venda ?? item.preco_cheio ?? item.preco ?? 0);
-        texto += `• ${desc} por R$ ${preco}\n`;
+        const precoPago = item.preco_venda ?? item.preco ?? 0;
+        const precoOriginal = item.preco_cheio ?? precoPago;
+        totalOriginalCalculado += Number(precoOriginal);
+
+        const temDesconto = precoOriginal && Number(precoOriginal) > Number(precoPago);
+        if (temDesconto) {
+          texto += `• ${desc} — (era R$ ${formatarBR(precoOriginal)}) por R$ ${formatarBR(precoPago)} 🔥\n`;
+        } else {
+          texto += `• ${desc} por R$ ${formatarBR(precoPago)}\n`;
+        }
       });
     }
 
-    texto += `\nTotal: R$ ${formatarBR(venda.total)}\n\n`;
+    const economiaTotal = totalOriginalCalculado - Number(venda.total || 0);
+    const textoEconomia = economiaTotal > 0.05 ? ` (Você economizou R$ ${formatarBR(economiaTotal)}! 🎉)` : '';
+
+    texto += `\nTotal: R$ ${formatarBR(venda.total)}${textoEconomia}\n\n`;
     texto += `Pix ou cartão?`;
 
     navigator.clipboard.writeText(texto);
