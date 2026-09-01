@@ -22,6 +22,7 @@ import {
   removerItem,
   fecharCarrinho,
   marcarEnviado,
+  atualizarPrecoItem,
   totalDoCarrinho,
 } from '../services/carrinhos.js';
 import ImportarLoteModal from '../components/ImportarLoteModal.jsx';
@@ -175,15 +176,30 @@ export default function LivePage() {
   const [qtdManual, setQtdManual] = useState('1');
 
   const [descontoLive, setDescontoLive] = useState(0);
+  const [precosLivePersonalizados, setPrecosLivePersonalizados] = useState({});
+  const [editandoItemCarrinho, setEditandoItemCarrinho] = useState(null); // { clienteId, idx, valor }
   const [itemArrastando, setItemArrastando] = useState(null);
 
-  function calcularPrecos(precoOriginal) {
+  function calcularPrecos(precoOriginal, codigoOuId) {
+    const custom = codigoOuId ? precosLivePersonalizados[codigoOuId] : undefined;
+    if (custom !== undefined && custom !== '' && !isNaN(Number(custom))) {
+      const customNum = Number(custom);
+      return {
+        cheio: precoOriginal,
+        pix: customNum,
+        cartao: customNum * 1.10,
+        temDesconto: customNum !== precoOriginal,
+        isCustom: true,
+      };
+    }
+
     if (!descontoLive || descontoLive === 0) {
       return {
         cheio: precoOriginal,
         pix: precoOriginal,
         cartao: precoOriginal,
         temDesconto: false,
+        isCustom: false,
       };
     }
     const pix = precoOriginal * (1 - descontoLive / 100);
@@ -193,6 +209,7 @@ export default function LivePage() {
       pix,
       cartao,
       temDesconto: true,
+      isCustom: false,
     };
   }
 
@@ -451,7 +468,7 @@ export default function LivePage() {
 
   const executarReserva = async (clienteId, item, variacao) => {
     const precoBase = variacao ? variacao.preco_venda : item.preco_venda;
-    const precos = calcularPrecos(precoBase);
+    const precos = calcularPrecos(precoBase, variacao ? `var-${variacao.id}` : item.codigo_fabrica);
     
     let desc = item.descricao;
     if (variacao) {
@@ -921,25 +938,45 @@ export default function LivePage() {
                             {item.variacoes.map((v) => {
                               const label = [v.atributo1, v.atributo2, v.atributo3].filter(Boolean).join(' / ');
                               const esgotada = v.estoque_disponivel === 0;
+                              const varKey = `var-${v.id}`;
+                              const precosV = calcularPrecos(v.preco_venda, varKey);
                               return (
-                                <div key={v.id} data-testid="linha-variacao" className="flex items-center gap-2">
+                                <div key={v.id} data-testid="linha-variacao" className="flex items-center justify-between gap-2 bg-gray-50/70 p-2 rounded-lg border border-gray-100">
                                   <DraggableVariacao item={item} variacao={v} disabled={esgotada}>
                                     <div className="flex flex-col">
                                       <span className="text-sm text-[var(--texto-forte)]">{label}</span>
-                                      {(() => {
-                                        const precosV = calcularPrecos(v.preco_venda);
-                                        return precosV.temDesconto ? (
-                                          <div className="flex flex-col">
-                                            <span className="text-[11px] text-[#83A6CE] line-through">R$ {formatarPreco(precosV.cheio)}</span>
-                                            <span className="text-[15px] font-bold text-[#C48CB3]">R$ {formatarPreco(precosV.pix)} Pix</span>
-                                          </div>
-                                        ) : (
-                                          <span className="text-[15px] font-bold text-[#C48CB3]">R$ {formatarPreco(v.preco_venda)}</span>
-                                        );
-                                      })()}
+                                      {precosV.temDesconto ? (
+                                        <div className="flex flex-col">
+                                          <span className="text-[11px] text-[#83A6CE] line-through">R$ {formatarPreco(precosV.cheio)}</span>
+                                          <span className="text-[14px] font-black text-[#C48CB3]">🔥 R$ {formatarPreco(precosV.pix)} {precosV.isCustom ? 'Live' : 'Pix'}</span>
+                                        </div>
+                                      ) : (
+                                        <span className="text-[14px] font-bold text-[#C48CB3]">R$ {formatarPreco(v.preco_venda)}</span>
+                                      )}
                                     </div>
                                   </DraggableVariacao>
-                                  <div className="flex items-center gap-2 shrink-0">
+                                  <div className="flex items-center gap-1.5 shrink-0">
+                                    <div className="flex items-center gap-1 bg-white border border-[#CBD5E1] px-1.5 py-0.5 rounded">
+                                      <span className="text-[10px] font-bold text-gray-600">R$:</span>
+                                      <input
+                                        type="text"
+                                        placeholder={formatarPreco(v.preco_venda)}
+                                        value={precosLivePersonalizados[varKey] ?? ''}
+                                        onChange={(e) => {
+                                          const val = e.target.value.replace(/[^\d,.]/g, '');
+                                          setPrecosLivePersonalizados(p => ({ ...p, [varKey]: val.replace(',', '.') }));
+                                        }}
+                                        className="w-12 text-xs font-bold text-[#C48CB3] text-center focus:outline-none"
+                                      />
+                                      {precosLivePersonalizados[varKey] && (
+                                        <button
+                                          onClick={() => setPrecosLivePersonalizados(p => { const next = { ...p }; delete next[varKey]; return next; })}
+                                          className="text-gray-400 hover:text-red-500 text-xs font-bold"
+                                        >
+                                          ✕
+                                        </button>
+                                      )}
+                                    </div>
                                     <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${esgotada ? 'bg-[rgba(192,82,106,0.1)] text-[#C0526A]' : 'bg-[rgba(74,155,127,0.1)] text-[#4A9B7F]'}`}>
                                       {esgotada ? 'ESGOTADO' : v.estoque_disponivel}
                                     </span>
@@ -955,20 +992,17 @@ export default function LivePage() {
                         <DraggableProduto item={item} disabled={item.estoque_disponivel === 0}>
                           {conteudoLinha}
                         </DraggableProduto>
-                        <div className="mt-3 flex justify-between items-center">
+                        <div className="mt-3 flex justify-between items-end gap-2">
                           <div className="flex flex-col">
                             {(() => {
-                              const precos = calcularPrecos(item.preco_venda);
+                              const precos = calcularPrecos(item.preco_venda, item.codigo_fabrica);
                               return precos.temDesconto ? (
                                 <div className="flex flex-col gap-0.5">
                                   <span className="text-[11px] text-[#83A6CE] line-through">
                                     R$ {formatarPreco(precos.cheio)}
                                   </span>
-                                  <span className="text-[15px] font-bold text-[#C48CB3]">
-                                    R$ {formatarPreco(precos.pix)} no Pix
-                                  </span>
-                                  <span className="text-[11px] text-[#83A6CE]">
-                                    R$ {formatarPreco(precos.cartao)} no cartão
+                                  <span className="text-[15px] font-black text-[#C48CB3]">
+                                    🔥 R$ {formatarPreco(precos.pix)} {precos.isCustom ? 'Oferta Live' : 'no Pix'}
                                   </span>
                                 </div>
                               ) : (
@@ -978,8 +1012,41 @@ export default function LivePage() {
                               );
                             })()}
                             <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full mt-1 inline-block text-center w-fit ${item.estoque_disponivel === 0 ? 'bg-[rgba(192,82,106,0.1)] text-[#C0526A]' : 'bg-[rgba(74,155,127,0.1)] text-[#4A9B7F]'}`}>
-                              {item.estoque_disponivel === 0 ? 'ESG\u200BOTADO' : `Estoque: ${item.estoque_disponivel}`}
+                              {item.estoque_disponivel === 0 ? 'ESGOTADO' : `Estoque: ${item.estoque_disponivel}`}
                             </span>
+                          </div>
+
+                          {/* Campo de Preço Live da Hora */}
+                          <div className="flex items-center gap-1 bg-[#F8FAFC] border border-[#E2E8F0] px-2 py-1 rounded-lg">
+                            <span className="text-[11px] font-bold text-[#26415E]">Live R$:</span>
+                            <input
+                              type="text"
+                              placeholder={formatarPreco(item.preco_venda)}
+                              value={precosLivePersonalizados[item.codigo_fabrica] ?? ''}
+                              onChange={(e) => {
+                                const val = e.target.value.replace(/[^\d,.]/g, '');
+                                setPrecosLivePersonalizados((prev) => ({
+                                  ...prev,
+                                  [item.codigo_fabrica]: val.replace(',', '.'),
+                                }));
+                              }}
+                              className="w-14 text-xs font-bold text-[#C48CB3] bg-white border border-[#CBD5E1] rounded px-1.5 py-0.5 text-center focus:outline-none focus:ring-1 focus:ring-[#C48CB3]"
+                            />
+                            {precosLivePersonalizados[item.codigo_fabrica] && (
+                              <button
+                                title="Limpar preço promocional"
+                                onClick={() => {
+                                  setPrecosLivePersonalizados((prev) => {
+                                    const next = { ...prev };
+                                    delete next[item.codigo_fabrica];
+                                    return next;
+                                  });
+                                }}
+                                className="text-gray-400 hover:text-red-500 text-xs px-0.5 font-bold"
+                              >
+                                ✕
+                              </button>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -1083,22 +1150,82 @@ export default function LivePage() {
                     </div>
 
                     <ul data-testid="itens-carrinho" className="space-y-2 py-1 min-h-[40px]">
-                      {c.itens.map((item, idx) => (
-                        <li key={item.reservaId || `item-${idx}-${item.codigo_fabrica}`} className="flex justify-between items-start text-sm">
-                          <div className="flex-1 leading-tight text-[var(--texto-forte)]">
-                            {item.descricao} <br />
-                            <span className="text-[#C48CB3] font-semibold">R$ {formatarPreco(item.preco_venda)}</span>
-                          </div>
-                          {c.status === 'aberto' && (
-                            <button
-                              onClick={() => handleRemover(c.clienteId, item.reservaId, idx)}
-                              className="text-red-500 text-xs ml-2 hover:underline shrink-0"
-                            >
-                              Remover
-                            </button>
-                          )}
-                        </li>
-                      ))}
+                      {c.itens.map((item, idx) => {
+                        const isEditando = editandoItemCarrinho?.clienteId === c.clienteId && editandoItemCarrinho?.idx === idx;
+                        return (
+                          <li key={item.reservaId || `item-${idx}-${item.codigo_fabrica}`} className="flex justify-between items-start text-sm bg-white/70 p-2 rounded-lg border border-gray-100 shadow-2xs">
+                            <div className="flex-1 leading-tight text-[var(--texto-forte)]">
+                              <p className="font-semibold text-xs text-gray-900">{item.descricao}</p>
+                              
+                              {isEditando ? (
+                                <div className="flex items-center gap-1.5 mt-1.5">
+                                  <span className="text-xs text-[#C48CB3] font-bold">R$</span>
+                                  <input
+                                    type="text"
+                                    autoFocus
+                                    value={editandoItemCarrinho.valor}
+                                    onChange={(e) => setEditandoItemCarrinho(prev => ({ ...prev, valor: e.target.value }))}
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter') {
+                                        const novoPreco = parseFloat(editandoItemCarrinho.valor.replace(',', '.')) || 0;
+                                        setEstadoCarrinhos(s => atualizarPrecoItem(s, c.clienteId, idx, novoPreco));
+                                        setEditandoItemCarrinho(null);
+                                      } else if (e.key === 'Escape') {
+                                        setEditandoItemCarrinho(null);
+                                      }
+                                    }}
+                                    className="w-16 px-1.5 py-0.5 text-xs font-bold border border-[#C48CB3] rounded bg-white focus:outline-none focus:ring-1 focus:ring-[#C48CB3]"
+                                  />
+                                  <button
+                                    onClick={() => {
+                                      const novoPreco = parseFloat(editandoItemCarrinho.valor.replace(',', '.')) || 0;
+                                      setEstadoCarrinhos(s => atualizarPrecoItem(s, c.clienteId, idx, novoPreco));
+                                      setEditandoItemCarrinho(null);
+                                    }}
+                                    className="text-[11px] bg-[#4A9B7F] text-white px-1.5 py-0.5 rounded font-bold hover:opacity-90"
+                                  >
+                                    Salvar
+                                  </button>
+                                  <button
+                                    onClick={() => setEditandoItemCarrinho(null)}
+                                    className="text-[11px] text-gray-400 hover:text-gray-600 px-1"
+                                  >
+                                    ✕
+                                  </button>
+                                </div>
+                              ) : (
+                                <div className="flex items-center gap-1.5 mt-1">
+                                  <span className="text-[#C48CB3] font-black text-xs">
+                                    R$ {formatarPreco(item.preco_venda)}
+                                  </span>
+                                  {item.preco_cheio && item.preco_cheio !== item.preco_venda && (
+                                    <span className="text-[10px] text-gray-400 line-through">
+                                      R$ {formatarPreco(item.preco_cheio)}
+                                    </span>
+                                  )}
+                                  {c.status === 'aberto' && (
+                                    <button
+                                      title="Editar valor pago desta peça"
+                                      onClick={() => setEditandoItemCarrinho({ clienteId: c.clienteId, idx, valor: String(item.preco_venda) })}
+                                      className="text-gray-400 hover:text-[#26415E] text-[11px] px-1 rounded hover:bg-gray-100 flex items-center gap-0.5"
+                                    >
+                                      ✏️ <span className="text-[10px]">Alterar</span>
+                                    </button>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                            {c.status === 'aberto' && (
+                              <button
+                                onClick={() => handleRemover(c.clienteId, item.reservaId, idx)}
+                                className="text-red-500 text-xs ml-2 hover:underline shrink-0 font-medium"
+                              >
+                                Remover
+                              </button>
+                            )}
+                          </li>
+                        );
+                      })}
                       {c.itens.length === 0 && c.status === 'aberto' && (
                         <p className="text-xs text-gray-400 text-center italic mt-2">Arraste produtos aqui</p>
                       )}

@@ -103,6 +103,31 @@ export function marcarEnviado(estado, clienteId) {
   };
 }
 
+export function atualizarPrecoItem(estado, clienteId, itemIndex, novoPreco) {
+  const precoNum = typeof novoPreco === 'number' ? novoPreco : parseFloat(String(novoPreco).replace(/[^\d,.]/g, '').replace(',', '.')) || 0;
+  return {
+    ...estado,
+    carrinhos: estado.carrinhos.map(c => {
+      if (c.clienteId === clienteId) {
+        return {
+          ...c,
+          itens: c.itens.map((item, idx) => {
+            if (idx === itemIndex) {
+              return {
+                ...item,
+                preco_venda: precoNum,
+                preco_cheio: item.preco_cheio || item.preco_venda || precoNum,
+              };
+            }
+            return item;
+          })
+        };
+      }
+      return c;
+    })
+  };
+}
+
 export function totalDoCarrinho(carrinho) {
   return carrinho.itens.reduce((acc, item) => acc + (item.preco_venda || 0), 0);
 }
