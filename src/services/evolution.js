@@ -63,13 +63,23 @@ async function requestGet(path) {
   }
 }
 
+export function sanitizarNumero(numero) {
+  if (!numero) return '';
+  let digits = String(numero).replace(/\D/g, '');
+  // Adiciona 55 se for número brasileiro de 10 ou 11 dígitos (ex: 18996558696 -> 5518996558696)
+  if (digits.length === 10 || digits.length === 11) {
+    digits = '55' + digits;
+  }
+  return digits;
+}
+
 export const evolution = {
   enviarTexto: (numero, texto) =>
-    request(`/message/sendText/${INSTANCE}`, { number: numero, text: texto }),
+    request(`/message/sendText/${INSTANCE}`, { number: sanitizarNumero(numero), text: texto }),
 
   enviarImagem: (numero, url, caption) =>
     request(`/message/sendMedia/${INSTANCE}`, {
-      number: numero,
+      number: sanitizarNumero(numero),
       mediatype: 'image',
       media: url,
       caption,

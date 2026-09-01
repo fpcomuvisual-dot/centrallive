@@ -124,7 +124,11 @@ export default function KanbanPage() {
         itens: venda.itens,
         total: venda.total,
       });
-      alert(`Fotos e resumo enviados com sucesso via WhatsApp! (${res.enviadas} enviadas)`);
+      if (res.enviadas === 0 && res.falhas > 0) {
+        alert(`⚠️ Não foi possível enviar as mensagens pelo Evolution (${res.falhas} falhas). Verifique se o WhatsApp está conectado no Evolution ou use o botão 'Abrir no WhatsApp Web'!`);
+      } else {
+        alert(`✅ Fotos e resumo enviados com sucesso via WhatsApp! (${res.enviadas} enviadas${res.falhas > 0 ? `, ${res.falhas} falhas` : ''})`);
+      }
     } catch (e) {
       alert(`Erro ao disparar fotos: ${e.message}`);
     } finally {
