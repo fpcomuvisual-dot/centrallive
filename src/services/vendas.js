@@ -67,4 +67,15 @@ export const vendasService = {
     save(vendas);
     return vendas[idx];
   },
+
+  /** Limpa todas as vendas do Kanban */
+  limpar() {
+    save([]);
+  },
+
+  /** Exclui uma venda específica */
+  excluir(id) {
+    const vendas = load().filter((v) => v.id !== id);
+    save(vendas);
+  },
 };

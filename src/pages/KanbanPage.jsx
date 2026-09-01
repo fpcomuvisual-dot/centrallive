@@ -136,9 +136,33 @@ export default function KanbanPage() {
     }
   };
 
+  const handleLimparKanban = () => {
+    if (confirm('Tem certeza que deseja limpar todos os pedidos do Kanban?')) {
+      vendasService.limpar();
+      setVendas([]);
+    }
+  };
+
+  const handleExcluirVenda = (id) => {
+    if (confirm('Excluir este pedido do Kanban?')) {
+      vendasService.excluir(id);
+      setVendas(prev => prev.filter(v => v.id !== id));
+    }
+  };
+
   return (
     <div className="p-6 space-y-4">
-      <h2 className="text-lg font-bold text-[var(--texto-forte)]">Kanban de Vendas</h2>
+      <div className="flex justify-between items-center">
+        <h2 className="text-lg font-bold text-[var(--texto-forte)]">Kanban de Vendas</h2>
+        {vendas.length > 0 && (
+          <button
+            onClick={handleLimparKanban}
+            className="text-xs text-red-600 hover:text-red-800 font-semibold border border-red-200 hover:bg-red-50 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1"
+          >
+            🗑️ Limpar Todo o Kanban ({vendas.length})
+          </button>
+        )}
+      </div>
 
       {erro && (
         <p className="text-[var(--vermelho-esgotado)] text-sm bg-red-50 border border-red-100 rounded-lg px-3 py-2">
@@ -169,15 +193,24 @@ export default function KanbanPage() {
                   data-testid="card-venda"
                   className={`bg-[var(--card-bg)] rounded-[var(--card-radius)] p-3 shadow-[var(--card-shadow)] space-y-2 border border-[var(--borda-sutil)] border-t-4 ${coresCard[coluna.key]}`}
                 >
-                  <div className="flex justify-between items-start">
-                    <p className="text-sm font-bold text-[var(--texto-forte)]">
-                      {(typeof venda.cliente === 'object' ? venda.cliente?.nome : venda.cliente) || 'Cliente'}
-                    </p>
-                    {venda.live_nome && (
-                      <span className="text-[10px] bg-purple-50 text-purple-700 border border-purple-200 px-1.5 py-0.5 rounded font-medium truncate max-w-[120px]">
-                        🎬 {venda.live_nome}
-                      </span>
-                    )}
+                  <div className="flex justify-between items-start gap-1">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-bold text-[var(--texto-forte)] truncate">
+                        {(typeof venda.cliente === 'object' ? venda.cliente?.nome : venda.cliente) || 'Cliente'}
+                      </p>
+                      {venda.live_nome && (
+                        <span className="text-[10px] bg-purple-50 text-purple-700 border border-purple-200 px-1.5 py-0.5 rounded font-medium truncate inline-block max-w-[120px] mt-0.5">
+                          🎬 {venda.live_nome}
+                        </span>
+                      )}
+                    </div>
+                    <button
+                      title="Excluir este pedido"
+                      onClick={() => handleExcluirVenda(venda.id)}
+                      className="text-gray-300 hover:text-red-500 p-1 rounded transition-colors text-xs shrink-0"
+                    >
+                      ✕
+                    </button>
                   </div>
                   <p className="text-xs text-[var(--roxo)] font-bold">
                     Total: R$ {formatarBR(venda.total)}
