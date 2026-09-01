@@ -106,9 +106,11 @@ export default function CatalogoPage() {
     ? sessoes
         .map((s) => ({
           ...s,
-          artes: s.artes.filter((a) => a.nome.toLowerCase().includes(termoBusca)),
+          artes: (s.artes || []).filter((a) =>
+            String(a?.nome || a?.sku || '').toLowerCase().includes(termoBusca)
+          ),
         }))
-        .filter((s) => s.artes.length > 0)
+        .filter((s) => s.artes && s.artes.length > 0)
     : sessoes;
 
   return (

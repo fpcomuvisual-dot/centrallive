@@ -644,16 +644,21 @@ export default function LivePage() {
     setEstadoCarrinhos(s => marcarEnviado(s, carrinho.clienteId));
   };
 
-  const catalogoFiltrado = catalogo.filter(i => 
-    !termoProduto || 
-    i.descricao.toLowerCase().includes(termoProduto.toLowerCase()) ||
-    i.codigo_fabrica.toLowerCase().includes(termoProduto.toLowerCase())
-  );
+  const catalogoFiltrado = catalogo.filter(i => {
+    if (!termoProduto || !termoProduto.trim()) return true;
+    const termo = termoProduto.toLowerCase().trim();
+    const desc = String(i?.descricao || i?.nome || '').toLowerCase();
+    const cod = String(i?.codigo_fabrica || i?.sku || '').toLowerCase();
+    return desc.includes(termo) || cod.includes(termo);
+  });
 
-  const carrinhosVisiveis = estadoCarrinhos.carrinhos.filter(c =>
-    !termoBuscaCarrinho || 
-    c.cliente.nome.toLowerCase().includes(termoBuscaCarrinho.toLowerCase())
-  );
+  const carrinhosVisiveis = estadoCarrinhos.carrinhos.filter(c => {
+    if (!termoBuscaCarrinho || !termoBuscaCarrinho.trim()) return true;
+    const termo = termoBuscaCarrinho.toLowerCase().trim();
+    const nome = String(c?.cliente?.nome || '').toLowerCase();
+    const wa = String(c?.cliente?.whatsapp || '').toLowerCase();
+    return nome.includes(termo) || wa.includes(termo);
+  });
 
   if (!liveAtiva) {
     return (
