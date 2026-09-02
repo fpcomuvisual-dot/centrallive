@@ -178,6 +178,7 @@ export default function LivePage() {
   const [descontoLive, setDescontoLive] = useState(0);
   const [precosLivePersonalizados, setPrecosLivePersonalizados] = useState({});
   const [editandoItemCarrinho, setEditandoItemCarrinho] = useState(null); // { clienteId, idx, valor }
+  const [showEscutador, setShowEscutador] = useState(false);
   const [itemArrastando, setItemArrastando] = useState(null);
 
   function calcularPrecos(precoOriginal, codigoOuId) {
@@ -769,22 +770,41 @@ export default function LivePage() {
             🔴 AO VIVO: #{liveAtiva.id} — {liveAtiva.nome}
           </span>
         </div>
-        <button
-          onClick={handleEncerrarLive}
-          className="text-xs px-3 py-1.5 rounded-lg font-semibold border border-[#C0526A] text-[#C0526A] hover:bg-[rgba(192,82,106,0.08)] transition-colors shadow-sm"
-        >
-          Encerrar Live ⏹️
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowEscutador(v => !v)}
+            className={`text-xs px-3 py-1.5 rounded-lg font-semibold border transition-colors shadow-2xs flex items-center gap-1.5 ${
+              showEscutador
+                ? 'bg-purple-100 text-purple-800 border-purple-300'
+                : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'
+            }`}
+          >
+            🎙️ {showEscutador ? 'Ocultar Escutador' : 'Escutador de Live (Minimizado)'}
+          </button>
+          <button
+            onClick={handleEncerrarLive}
+            className="text-xs px-3 py-1.5 rounded-lg font-semibold border border-[#C0526A] text-[#C0526A] hover:bg-[rgba(192,82,106,0.08)] transition-colors shadow-sm"
+          >
+            Encerrar Live ⏹️
+          </button>
+        </div>
       </div>
 
       <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-        <div style={{ display: 'grid', gridTemplateColumns: '30fr 40fr 30fr', height: 'calc(100vh - 48px)', overflow: 'hidden' }}>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: showEscutador ? '45fr 35fr 20fr' : '60fr 40fr',
+          height: 'calc(100vh - 48px)',
+          overflow: 'hidden'
+        }}>
           
-          {/* COLUNA 1: PRODUTOS (30%) */}
+          {/* COLUNA 1: PRODUTOS / CATÁLOGO (IMAGENS GRANDES) */}
           <div className="h-full overflow-y-auto p-4 border-r border-[var(--borda-sutil)] flex flex-col bg-[var(--fundo)]">
-            <div className="flex justify-between items-center mb-4 shrink-0">
-              <h3 className="text-lg font-bold text-[var(--texto-forte)]">Catálogo</h3>
-              <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex justify-between items-center mb-3 shrink-0">
+              <h3 className="text-lg font-black text-[var(--texto-forte)] flex items-center gap-2">
+                💎 Catálogo de Peças <span className="text-xs font-normal text-gray-400">({catalogoFiltrado.length})</span>
+              </h3>
+              <div className="flex items-center gap-1.5 flex-wrap">
                 <span className="text-xs text-[var(--texto-fraco)] font-medium">
                   Desconto:
                 </span>
@@ -794,175 +814,187 @@ export default function LivePage() {
                     onClick={() => setDescontoLive(d)}
                     className={
                       descontoLive === d
-                        ? 'text-xs px-3 py-1 rounded-full font-medium bg-[#C48CB3] text-white border-[#C48CB3]'
-                        : 'text-xs px-3 py-1 rounded-full font-medium border border-[#E8EDF5] text-[#83A6CE] bg-transparent hover:border-[#C48CB3] hover:text-[#C48CB3] transition-colors'
+                        ? 'text-xs px-2.5 py-0.5 rounded-full font-bold bg-[#C48CB3] text-white border-[#C48CB3]'
+                        : 'text-xs px-2.5 py-0.5 rounded-full font-medium border border-[#E8EDF5] text-[#83A6CE] bg-transparent hover:border-[#C48CB3] hover:text-[#C48CB3] transition-colors'
                     }
                   >
-                    {d === 0 ? 'Sem desconto' : `${d}%`}
+                    {d === 0 ? 'Normal' : `${d}%`}
                   </button>
                 ))}
               </div>
             </div>
             
-            <div className="mb-4 shrink-0 flex flex-col gap-3">
-              <form onSubmit={handleAdicionarItem} className="flex gap-2">
+            <div className="mb-3 shrink-0 flex flex-col gap-2">
+              <div className="flex gap-2 items-center">
                 <input
-                  placeholder="Código"
-                  value={codigoNovoItem}
-                  onChange={(e) => setCodigoNovoItem(e.target.value)}
-                  className="border border-[var(--borda-sutil)] rounded-lg px-2 py-1 text-sm w-20 focus:outline-none focus:ring-2 focus:ring-[var(--roxo)]"
+                  placeholder="🔍 Buscar produto por nome ou SKU..."
+                  value={termoProduto}
+                  onChange={(e) => setTermoProduto(e.target.value)}
+                  className="border border-[var(--borda-sutil)] rounded-xl px-3 py-2 text-sm flex-1 bg-white focus:outline-none focus:ring-2 focus:ring-[var(--roxo)] shadow-2xs"
                 />
-                <input
-                  placeholder="Quantidade"
-                  value={quantidadeNovoItem}
-                  onChange={(e) => setQuantidadeNovoItem(e.target.value)}
-                  className="border border-[var(--borda-sutil)] rounded-lg px-2 py-1 text-sm w-12 focus:outline-none focus:ring-2 focus:ring-[var(--roxo)]"
-                />
-                <button
-                  type="submit"
-                  aria-label="Adicionar à live"
-                  style={{ background: '#26415E' }}
-                  className="text-white px-3 py-1 rounded-lg text-sm font-medium hover:opacity-90"
-                >
-                  +
-                </button>
                 <button
                   type="button"
                   onClick={() => setShowImportarModal(true)}
                   style={{ background: '#26415E' }}
-                  className="text-white px-3 py-1 rounded-lg text-sm font-medium hover:opacity-90 whitespace-nowrap ml-auto"
+                  className="text-white px-3 py-2 rounded-xl text-xs font-bold hover:opacity-90 whitespace-nowrap shadow-sm"
                 >
-                  Importar Lote
+                  📦 Importar Lote
                 </button>
-              </form>
+              </div>
 
-              <button
-                onClick={() => setShowFormManual(v => !v)}
-                className="w-full border border-[#26415E] text-[#26415E] py-1.5 rounded-lg text-sm font-medium hover:bg-[#26415E] hover:text-white transition-colors"
-              >
-                + Peça manual
-              </button>
+              <div className="flex gap-2">
+                <form onSubmit={handleAdicionarItem} className="flex gap-2 flex-1">
+                  <input
+                    placeholder="SKU"
+                    value={codigoNovoItem}
+                    onChange={(e) => setCodigoNovoItem(e.target.value)}
+                    className="border border-[var(--borda-sutil)] rounded-lg px-2 py-1 text-xs w-24 bg-white focus:outline-none focus:ring-1 focus:ring-[var(--roxo)]"
+                  />
+                  <input
+                    placeholder="Qtd"
+                    value={quantidadeNovoItem}
+                    onChange={(e) => setQuantidadeNovoItem(e.target.value)}
+                    className="border border-[var(--borda-sutil)] rounded-lg px-2 py-1 text-xs w-12 bg-white focus:outline-none focus:ring-1 focus:ring-[var(--roxo)]"
+                  />
+                  <button
+                    type="submit"
+                    style={{ background: '#26415E' }}
+                    className="text-white px-3 py-1 rounded-lg text-xs font-bold hover:opacity-90"
+                  >
+                    + Adicionar
+                  </button>
+                </form>
+
+                <button
+                  onClick={() => setShowFormManual(v => !v)}
+                  className="border border-[#26415E] text-[#26415E] px-3 py-1 rounded-lg text-xs font-bold hover:bg-[#26415E] hover:text-white transition-colors whitespace-nowrap"
+                >
+                  + Peça manual
+                </button>
+              </div>
 
               {showFormManual && (
-                <div className="bg-white border border-[var(--borda-sutil)]
-                                rounded-lg p-3 space-y-2 shrink-0">
+                <div className="bg-white border border-[var(--borda-sutil)] rounded-xl p-3 space-y-2 shrink-0 shadow-sm">
                   <input
                     placeholder="Nome da peça"
                     value={nomeManual}
                     onChange={e => setNomeManual(e.target.value)}
-                    className="border border-[var(--borda-sutil)] rounded-lg
-                               px-3 py-1.5 text-sm w-full focus:outline-none
-                               focus:ring-2 focus:ring-[var(--roxo)]"
+                    className="border border-[var(--borda-sutil)] rounded-lg px-3 py-1.5 text-xs w-full focus:outline-none focus:ring-2 focus:ring-[var(--roxo)]"
                   />
                   <div className="flex gap-2">
                     <input
                       placeholder="Preço (ex: 79,90)"
                       value={precoManual}
                       onChange={e => setPrecoManual(e.target.value)}
-                      className="border border-[var(--borda-sutil)] rounded-lg
-                                 px-3 py-1.5 text-sm flex-1 focus:outline-none
-                                 focus:ring-2 focus:ring-[var(--roxo)]"
+                      className="border border-[var(--borda-sutil)] rounded-lg px-3 py-1.5 text-xs flex-1 focus:outline-none focus:ring-2 focus:ring-[var(--roxo)]"
                     />
                     <input
                       placeholder="Qtd"
                       value={qtdManual}
                       onChange={e => setQtdManual(e.target.value)}
-                      className="border border-[var(--borda-sutil)] rounded-lg
-                                 px-3 py-1.5 text-sm w-16 focus:outline-none
-                                 focus:ring-2 focus:ring-[var(--roxo)]"
+                      className="border border-[var(--borda-sutil)] rounded-lg px-3 py-1.5 text-xs w-16 focus:outline-none focus:ring-2 focus:ring-[var(--roxo)]"
                     />
                   </div>
                   <button
                     onClick={handleAdicionarManual}
                     disabled={!nomeManual.trim() || !precoManual.trim()}
                     style={{ background: '#26415E' }}
-                    className="w-full text-white text-sm py-1.5 rounded-lg hover:opacity-90 font-medium disabled:opacity-40"
+                    className="w-full text-white text-xs py-1.5 rounded-lg hover:opacity-90 font-bold disabled:opacity-40"
                   >
-                    Adicionar ao catálogo
+                    Salvar no Catálogo
                   </button>
                 </div>
               )}
-
-              <input
-                placeholder="Buscar produto"
-                value={termoProduto}
-                onChange={(e) => setTermoProduto(e.target.value)}
-                className="border border-[var(--borda-sutil)] rounded-lg px-3 py-2 text-sm w-full focus:outline-none focus:ring-2 focus:ring-[var(--roxo)]"
-              />
             </div>
 
             {avisoEsgotado && (
-              <p className="text-[var(--vermelho-esgotado)] text-sm bg-red-50 border border-red-100 rounded-lg px-3 py-2 mb-3 shrink-0">
+              <p className="text-[var(--vermelho-esgotado)] text-xs bg-red-50 border border-red-100 rounded-lg px-3 py-2 mb-3 shrink-0">
                 {avisoEsgotado}
               </p>
             )}
             {resumoImportacao && (
-              <p className="text-green-700 text-sm bg-green-50 border border-green-100 rounded-lg px-3 py-2 mb-3 shrink-0">
+              <p className="text-green-700 text-xs bg-green-50 border border-green-100 rounded-lg px-3 py-2 mb-3 shrink-0">
                 {resumoImportacao}
               </p>
             )}
 
-            <div className="flex-1 overflow-y-auto space-y-3 pr-2 pb-10">
+            {/* LISTAGEM DE PRODUTOS EM GRID COM FOTOS GRANDES */}
+            <div className="flex-1 overflow-y-auto grid grid-cols-1 xl:grid-cols-2 gap-3.5 pr-1 pb-10 content-start">
               {catalogoFiltrado.map((item) => {
                 const temVariacoes = Array.isArray(item.variacoes) && item.variacoes.length > 0;
                 const imagem = item.storage_url || imagensProduto[item.codigo_fabrica] || null;
 
-                const conteudoLinha = (
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 shrink-0 bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center">
-                      {imagem ? (
-                        <img src={imagem} alt={item.descricao} className="w-full h-full object-cover" />
-                      ) : (
-                        <span className="opacity-40 text-xs">📷</span>
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[10px] text-[#83A6CE] font-mono tracking-wide">{item.codigo_fabrica}</p>
-                      <p className="text-[13px] font-semibold text-[#0D1E4C] truncate leading-tight"><strong>{item.descricao}</strong></p>
-                    </div>
+                const fotoBlocoGrande = (
+                  <div className="relative w-full h-44 bg-gray-100 rounded-xl overflow-hidden mb-2.5 group cursor-grab active:cursor-grabbing border border-gray-100">
+                    {imagem ? (
+                      <img
+                        src={imagem}
+                        alt={item.descricao}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex flex-col items-center justify-center text-gray-400 bg-gray-50">
+                        <span className="text-3xl">📷</span>
+                        <span className="text-[11px] font-medium mt-1">Sem foto cadastrada</span>
+                      </div>
+                    )}
+                    <span className="absolute top-2 left-2 bg-black/60 text-white font-mono text-[10px] px-2 py-0.5 rounded-md backdrop-blur-xs font-semibold shadow-xs">
+                      {item.codigo_fabrica}
+                    </span>
+                    <span className={`absolute top-2 right-2 text-[10px] font-bold px-2 py-0.5 rounded-md shadow-sm ${item.estoque_disponivel === 0 ? 'bg-red-500 text-white' : 'bg-emerald-600 text-white'}`}>
+                      {item.estoque_disponivel === 0 ? 'ESGOTADO' : `${item.estoque_disponivel} un`}
+                    </span>
                   </div>
                 );
 
                 return (
-                  <div key={item.codigo_fabrica} data-testid="produto-compacto" className="bg-white rounded-xl border border-[#E8EDF5] shadow-[0_1px_4px_rgba(13,30,76,0.07)] p-3 hover:shadow-[0_4px_20px_rgba(13,30,76,0.13)] hover:-translate-y-0.5 transition-all duration-200">
+                  <div
+                    key={item.codigo_fabrica}
+                    data-testid="produto-compacto"
+                    className="bg-white rounded-2xl border border-[#E8EDF5] shadow-[0_2px_8px_rgba(13,30,76,0.06)] p-3 hover:shadow-[0_8px_24px_rgba(13,30,76,0.12)] hover:-translate-y-0.5 transition-all duration-200 flex flex-col justify-between"
+                  >
                     {temVariacoes ? (
                       <div>
-                        {conteudoLinha}
-                        <div className="mt-3 flex justify-between items-center">
-                          <span className="text-[15px] font-bold text-[#C48CB3]">R$ {formatarPreco(item.preco_venda)}</span>
+                        {fotoBlocoGrande}
+                        <p className="text-[13px] font-bold text-[#0D1E4C] leading-snug line-clamp-2">
+                          {item.descricao}
+                        </p>
+                        <div className="mt-2 flex justify-between items-center">
+                          <span className="text-base font-black text-[#C48CB3]">R$ {formatarPreco(item.preco_venda)}</span>
                           <button
                             onClick={() => toggleVariacoes(item.codigo_fabrica)}
-                            className="text-sm text-[#C48CB3] font-medium underline"
+                            className="text-xs text-[#26415E] font-bold underline hover:opacity-80"
                           >
-                            Ver variações
+                            Ver {item.variacoes.length} variações ▾
                           </button>
                         </div>
                         
                         {variacoesExpandidas[item.codigo_fabrica] && (
-                          <div className="mt-3 pt-3 border-t border-[var(--borda-sutil)] space-y-2">
+                          <div className="mt-2.5 pt-2.5 border-t border-[var(--borda-sutil)] space-y-1.5">
                             {item.variacoes.map((v) => {
                               const label = [v.atributo1, v.atributo2, v.atributo3].filter(Boolean).join(' / ');
                               const esgotada = v.estoque_disponivel === 0;
                               const varKey = `var-${v.id}`;
                               const precosV = calcularPrecos(v.preco_venda, varKey);
                               return (
-                                <div key={v.id} data-testid="linha-variacao" className="flex items-center justify-between gap-2 bg-gray-50/70 p-2 rounded-lg border border-gray-100">
+                                <div key={v.id} data-testid="linha-variacao" className="flex items-center justify-between gap-1.5 bg-gray-50 p-1.5 rounded-lg border border-gray-100">
                                   <DraggableVariacao item={item} variacao={v} disabled={esgotada}>
                                     <div className="flex flex-col">
-                                      <span className="text-sm text-[var(--texto-forte)]">{label}</span>
+                                      <span className="text-xs font-semibold text-[var(--texto-forte)]">{label}</span>
                                       {precosV.temDesconto ? (
-                                        <div className="flex flex-col">
-                                          <span className="text-[11px] text-[#83A6CE] line-through">R$ {formatarPreco(precosV.cheio)}</span>
-                                          <span className="text-[14px] font-black text-[#C48CB3]">🔥 R$ {formatarPreco(precosV.pix)} {precosV.isCustom ? 'Live' : 'Pix'}</span>
+                                        <div className="flex items-center gap-1">
+                                          <span className="text-[10px] text-[#83A6CE] line-through">R$ {formatarPreco(precosV.cheio)}</span>
+                                          <span className="text-[12px] font-black text-[#C48CB3]">🔥 R$ {formatarPreco(precosV.pix)}</span>
                                         </div>
                                       ) : (
-                                        <span className="text-[14px] font-bold text-[#C48CB3]">R$ {formatarPreco(v.preco_venda)}</span>
+                                        <span className="text-[12px] font-bold text-[#C48CB3]">R$ {formatarPreco(v.preco_venda)}</span>
                                       )}
                                     </div>
                                   </DraggableVariacao>
-                                  <div className="flex items-center gap-1.5 shrink-0">
-                                    <div className="flex items-center gap-1 bg-white border border-[#CBD5E1] px-1.5 py-0.5 rounded">
-                                      <span className="text-[10px] font-bold text-gray-600">R$:</span>
+                                  <div className="flex items-center gap-1 shrink-0">
+                                    <div className="flex items-center gap-0.5 bg-white border border-[#CBD5E1] px-1 py-0.5 rounded">
+                                      <span className="text-[9px] font-bold text-gray-500">R$:</span>
                                       <input
                                         type="text"
                                         placeholder={formatarPreco(v.preco_venda)}
@@ -971,19 +1003,19 @@ export default function LivePage() {
                                           const val = e.target.value.replace(/[^\d,.]/g, '');
                                           setPrecosLivePersonalizados(p => ({ ...p, [varKey]: val.replace(',', '.') }));
                                         }}
-                                        className="w-12 text-xs font-bold text-[#C48CB3] text-center focus:outline-none"
+                                        className="w-10 text-[11px] font-bold text-[#C48CB3] text-center focus:outline-none"
                                       />
                                       {precosLivePersonalizados[varKey] && (
                                         <button
                                           onClick={() => setPrecosLivePersonalizados(p => { const next = { ...p }; delete next[varKey]; return next; })}
-                                          className="text-gray-400 hover:text-red-500 text-xs font-bold"
+                                          className="text-gray-400 hover:text-red-500 text-xs font-bold px-0.5"
                                         >
                                           ✕
                                         </button>
                                       )}
                                     </div>
-                                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${esgotada ? 'bg-[rgba(192,82,106,0.1)] text-[#C0526A]' : 'bg-[rgba(74,155,127,0.1)] text-[#4A9B7F]'}`}>
-                                      {esgotada ? 'ESGOTADO' : v.estoque_disponivel}
+                                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${esgotada ? 'bg-red-100 text-red-600' : 'bg-emerald-100 text-emerald-700'}`}>
+                                      {esgotada ? '0' : v.estoque_disponivel}
                                     </span>
                                   </div>
                                 </div>
@@ -993,36 +1025,39 @@ export default function LivePage() {
                         )}
                       </div>
                     ) : (
-                      <div>
+                      <div className="flex flex-col h-full justify-between">
                         <DraggableProduto item={item} disabled={item.estoque_disponivel === 0}>
-                          {conteudoLinha}
+                          <div>
+                            {fotoBlocoGrande}
+                            <p className="text-[13px] font-bold text-[#0D1E4C] leading-snug line-clamp-2">
+                              {item.descricao}
+                            </p>
+                          </div>
                         </DraggableProduto>
-                        <div className="mt-3 flex justify-between items-end gap-2">
+                        
+                        <div className="mt-2.5 pt-2 border-t border-gray-100 flex justify-between items-end gap-2">
                           <div className="flex flex-col">
                             {(() => {
                               const precos = calcularPrecos(item.preco_venda, item.codigo_fabrica);
                               return precos.temDesconto ? (
-                                <div className="flex flex-col gap-0.5">
-                                  <span className="text-[11px] text-[#83A6CE] line-through">
+                                <div className="flex flex-col">
+                                  <span className="text-[10px] text-[#83A6CE] line-through">
                                     R$ {formatarPreco(precos.cheio)}
                                   </span>
-                                  <span className="text-[15px] font-black text-[#C48CB3]">
-                                    🔥 R$ {formatarPreco(precos.pix)} {precos.isCustom ? 'Oferta Live' : 'no Pix'}
+                                  <span className="text-base font-black text-[#C48CB3]">
+                                    🔥 R$ {formatarPreco(precos.pix)} {precos.isCustom ? 'Oferta' : 'Pix'}
                                   </span>
                                 </div>
                               ) : (
-                                <span className="text-[15px] font-bold text-[#C48CB3]">
+                                <span className="text-base font-black text-[#C48CB3]">
                                   R$ {formatarPreco(item.preco_venda)}
                                 </span>
                               );
                             })()}
-                            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full mt-1 inline-block text-center w-fit ${item.estoque_disponivel === 0 ? 'bg-[rgba(192,82,106,0.1)] text-[#C0526A]' : 'bg-[rgba(74,155,127,0.1)] text-[#4A9B7F]'}`}>
-                              {item.estoque_disponivel === 0 ? 'ESGOTADO' : `Estoque: ${item.estoque_disponivel}`}
-                            </span>
                           </div>
 
                           {/* Campo de Preço Live da Hora */}
-                          <div className="flex items-center gap-1 bg-[#F8FAFC] border border-[#E2E8F0] px-2 py-1 rounded-lg">
+                          <div className="flex items-center gap-1 bg-[#F8FAFC] border border-[#CBD5E1] px-2 py-1 rounded-xl shadow-2xs">
                             <span className="text-[11px] font-bold text-[#26415E]">Live R$:</span>
                             <input
                               type="text"
@@ -1035,7 +1070,7 @@ export default function LivePage() {
                                   [item.codigo_fabrica]: val.replace(',', '.'),
                                 }));
                               }}
-                              className="w-14 text-xs font-bold text-[#C48CB3] bg-white border border-[#CBD5E1] rounded px-1.5 py-0.5 text-center focus:outline-none focus:ring-1 focus:ring-[#C48CB3]"
+                              className="w-14 text-xs font-bold text-[#C48CB3] bg-white border border-[#CBD5E1] rounded-lg px-1.5 py-0.5 text-center focus:outline-none focus:ring-1 focus:ring-[#C48CB3]"
                             />
                             {precosLivePersonalizados[item.codigo_fabrica] && (
                               <button
@@ -1281,10 +1316,12 @@ export default function LivePage() {
             </div>
           </div>
 
-          {/* COLUNA 3: ESCUTADOR (30%) */}
-          <div className="painel-escuta">
-            <PainelEscutador />
-          </div>
+          {/* COLUNA 3: ESCUTADOR (MINIMIZADO / SOB DEMANDA) */}
+          {showEscutador && (
+            <div className="painel-escuta h-full overflow-y-auto border-l border-[var(--borda-sutil)] bg-white">
+              <PainelEscutador />
+            </div>
+          )}
 
         </div>
         
